@@ -2,43 +2,73 @@ package com.example.aashish.login;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceActivity;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
+import android.support.v7.widget.AppCompatButton;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.animation.GlideAnimation;
+import com.bumptech.glide.request.target.SimpleTarget;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.OptionalPendingResult;
 import com.google.android.gms.common.api.ResultCallback;
+
+import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.common.api.Status;
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.JsonHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+
+import cz.msebera.android.httpclient.Header;
+
+
 
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener,
         GoogleApiClient.OnConnectionFailedListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
+    static final String T = MainActivity.class.getSimpleName()+".tag";
     private static final int RC_SIGN_IN = 007;
 
     private GoogleApiClient mGoogleApiClient;
     private ProgressDialog mProgressDialog;
 
     private SignInButton btnSignIn;
-    private Button btnSignOut, btnRevokeAccess;
-    private LinearLayout llProfileLayout;
-    private ImageView imgProfilePic;
-    private TextView txtName, txtEmail;
+    private AppCompatButton btn_login;
+    private TextView link_signup;
+    private EditText input_username;
+    private EditText input_password;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,19 +76,26 @@ public class MainActivity extends AppCompatActivity implements
         setContentView(R.layout.activity_main);
 
         btnSignIn = (SignInButton) findViewById(R.id.btn_sign_in);
-        btnSignOut = (Button) findViewById(R.id.btn_sign_out);
+
+        /*btnSignOut = (Button) findViewById(R.id.btn_sign_out);
         btnRevokeAccess = (Button) findViewById(R.id.btn_revoke_access);
         llProfileLayout = (LinearLayout) findViewById(R.id.llProfile);
         imgProfilePic = (ImageView) findViewById(R.id.imgProfilePic);
         txtName = (TextView) findViewById(R.id.txtName);
-        txtEmail = (TextView) findViewById(R.id.txtEmail);
+        txtEmail = (TextView) findViewById(R.id.txtEmail);*/
+        input_username=(EditText)findViewById(R.id.input_username);
+        input_password=(EditText)findViewById(R.id.input_password);
+        link_signup=(TextView)findViewById(R.id.link_signup);
+        btn_login=(AppCompatButton)findViewById(R.id.btn_login);
 
         btnSignIn.setOnClickListener(this);
-        btnSignOut.setOnClickListener(this);
-        btnRevokeAccess.setOnClickListener(this);
+        btn_login.setOnClickListener(this);
+        link_signup.setOnClickListener(this);
+        //btnSignOut.setOnClickListener(this);
+        //btnRevokeAccess.setOnClickListener(this);
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
+                .requestProfile()
                 .build();
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -68,7 +105,145 @@ public class MainActivity extends AppCompatActivity implements
 
         btnSignIn.setSize(SignInButton.SIZE_STANDARD);
         btnSignIn.setScopes(gso.getScopeArray());
+        //Log.v("SCOPES:",gso.
     }
+
+    private void logIntent(String[] d)
+    {
+        Intent intent=new Intent(getApplicationContext(),LoggedIn.class);
+        intent.putExtra(T,d);
+        startActivity(intent);
+    }
+    public boolean validate() {
+        boolean valid = true;
+
+        String username = input_username.getText().toString();
+        String password = input_password.getText().toString();
+
+        if (username.isEmpty() ) {
+           input_username.setError("enter a valid username");
+            valid = false;
+        } else {
+            input_username.setError(null);
+        }
+
+        if (password.isEmpty() || password.length() < 4 || password.length() > 10) {
+            input_password.setError("between 4 and 10 alphanumeric characters");
+            valid = false;
+        } else {
+            input_password.setError(null);
+        }
+
+        return valid;
+    }
+
+    private String[] post(String url,final String arr,RequestParams params)
+    {
+        final String[] res=new String[2];
+        //create HTTP client
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.post(url, params, new JsonHttpResponseHandler(){
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                try {
+                    JSONArray resp = response.getJSONArray(arr);
+                    JSONObject jsonobj = resp.getJSONObject(0);
+                    if(jsonobj.getString("err")==null)
+                    {
+                        res[0] =jsonobj.getString("userid");
+                        res[1] =jsonobj.getString("token");
+                    }
+                    else
+                    {
+                        res[0] ="";
+                        res[1] ="";
+                    }
+                } catch (JSONException e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            res[0] ="";
+                            res[1] ="";
+                            Toast.makeText(
+                                    getApplicationContext(),
+                                    "Something went wrong :(",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode,Header[] headers, String responseString, Throwable throwable) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(
+                                getApplicationContext(),
+                                "Something went wrong :(",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                });
+
+            }
+        });
+        return res;
+    }
+    private void logIn()
+    {
+
+        
+        if (!validate()) {
+            Toast.makeText(getBaseContext(), "Login failed", Toast.LENGTH_LONG).show();
+            return;
+        }
+        final ProgressDialog progressDialog = new ProgressDialog(this,
+                R.style.AppTheme_Dark_Dialog);
+        progressDialog.setIndeterminate(true);
+        progressDialog.setMessage("Authenticating...");
+        progressDialog.show();
+        String username=input_username.getText().toString();
+        String password=input_password.getText().toString();
+        
+
+        RequestParams params = new RequestParams();
+
+        // set our JSON object
+        params.put("username",username );
+        params.put("password", password);
+
+
+
+        String r[]=post(":3000/users/login","login",params);
+        final  String userid = r[0];
+        final String token = r[1];
+        new android.os.Handler().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        if(!userid.equals("") && !token.equals(""))
+                        {
+                            logIntent(new  String[]{userid,token,null});
+                        }
+                        else
+                        {
+                            Toast.makeText(
+                                    getApplicationContext(),
+                                    "Login failed",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+                        
+                        
+                        progressDialog.dismiss();
+                    }
+                }, 3000);
+
+    }
+
+
 
 
     private void signIn() {
@@ -82,7 +257,8 @@ public class MainActivity extends AppCompatActivity implements
                 new ResultCallback<Status>() {
                     @Override
                     public void onResult(Status status) {
-                        updateUI(false);
+
+                        //updateUI(false);
                     }
                 });
     }
@@ -92,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements
                 new ResultCallback<Status>() {
                     @Override
                     public void onResult(Status status) {
-                        updateUI(false);
+                        //updateUI(false);
                     }
                 });
     }
@@ -106,27 +282,71 @@ public class MainActivity extends AppCompatActivity implements
             Log.e(TAG, "display name: " + acct.getDisplayName());
 
             String personName = acct.getDisplayName();
-            String personPhotoUrl = acct.getPhotoUrl().toString();
-            String email = acct.getEmail();
+            final String[] personPhotoUrl =new  String[1];
+            try {
+                personPhotoUrl[0] = acct.getPhotoUrl().toString();
+            } catch (NullPointerException e) {
+                personPhotoUrl[0]="";
+            }
 
+            String username = acct.getEmail();
 
-            Log.e(TAG, "Name: " + personName + ", email: " + email
-                    + ", Image: " + personPhotoUrl);
-
-            txtName.setText(personName);
-            txtEmail.setText(email);
-            Glide.with(getApplicationContext()).load(personPhotoUrl)
+            SimpleTarget target = new SimpleTarget<Bitmap>() {
+                @Override
+                public void onResourceReady(Bitmap bitmap, GlideAnimation glideAnimation) {
+                    // do something with the bitmap
+                    // for demonstration purposes, let's just set it to an ImageView
+                    personPhotoUrl[0]=BitMapToString(bitmap);
+                }
+            };
+            if(!personPhotoUrl[0].equals(""))
+                Glide.with( getApplicationContext())
+                    .load(personPhotoUrl[0])
+                    .asBitmap()
                     .thumbnail(0.5f)
-                    .crossFade()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .into(imgProfilePic);
+                    .into(target);
+            Log.e(TAG, "Name: " + personName + ", username: " + username
+                    + ", Image: " + personPhotoUrl[0]);
+            RequestParams params = new RequestParams();
 
-            updateUI(true);
+            // set our JSON object
+            params.put("username",username );
+            params.put("password", "");
+            params.put("name", personName);
+            params.put("age", "");
+            params.put("aboutme", "");
+            params.put("gender", "");
+            params.put("photo",personPhotoUrl[0]);
+
+
+            String r[]=post(":3000/users/register","register",params);
+            final  String userid = r[0];
+            final String token = r[1];
+            if(!userid.equals("") && !token.equals(""))
+            {
+                logIntent(new  String[]{userid,token,personPhotoUrl[0]});
+            }
+            else
+            {
+                Toast.makeText(
+                        getApplicationContext(),
+                        "Something went wrong :(",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
+
+            /*txtName.setText(personName);
+            txtEmail.setText(username);*/
+
+
+            //updateUI(true);
         } else {
             // Signed out, show unauthenticated UI.
-            updateUI(false);
+            //updateUI(false);
         }
     }
+
+
 
     @Override
     public void onClick(View v) {
@@ -137,12 +357,14 @@ public class MainActivity extends AppCompatActivity implements
                 signIn();
                 break;
 
-            case R.id.btn_sign_out:
-                signOut();
+            case R.id.btn_login:
+                logIn();
                 break;
 
-            case R.id.btn_revoke_access:
-                revokeAccess();
+            case R.id.link_signup:
+                Intent intent=new Intent(getApplicationContext(),Signup.class);
+                startActivity(intent);
+                finish();
                 break;
         }
     }
@@ -207,7 +429,14 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    private void updateUI(boolean isSignedIn) {
+    public String BitMapToString(Bitmap bitmap){
+        ByteArrayOutputStream baos=new  ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG,100, baos);
+        byte [] arr=baos.toByteArray();
+        String result= Base64.encodeToString(arr, Base64.DEFAULT);
+        return result;
+    }
+   /* private void updateUI(boolean isSignedIn) {
         if (isSignedIn) {
             btnSignIn.setVisibility(View.GONE);
             btnSignOut.setVisibility(View.VISIBLE);
@@ -219,6 +448,6 @@ public class MainActivity extends AppCompatActivity implements
             btnRevokeAccess.setVisibility(View.GONE);
             llProfileLayout.setVisibility(View.GONE);
         }
-    }
+    }*/
 }
 
