@@ -138,14 +138,65 @@ public class MainActivity extends AppCompatActivity implements
         return valid;
     }
 
-    private String[] post(String url,final String arr,RequestParams params)
+    private List<String> post(String url,final String arr,RequestParams params)
     {
-       //create HTTP client
+        final List<String>result=new ArrayList();//String[] res = new String[2];//={"",""};
+        //create HTTP client
         AsyncHttpClient client = new AsyncHttpClient();
-        Jsonhttphandler handler=new Jsonhttphandler();
+        //Jsonhttphandler handler=new Jsonhttphandler();
         Log.d(TAG,params.toString());
-        client.post(url, params,handler );
-        return handler.getRes();
+        client.post(url, params, new JsonHttpResponseHandler(){
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                try {
+                    //JSONArray resp = response.getJSONArray(arr);
+                    //JSONObject jsonobj = resp.getJSONObject(0);
+                    if(response.getString("status")!=null)
+                    {
+                        result.add(response.getString("userid"));
+                        result.add("token");
+                        //res[0] =response.getString("userid");
+                        //res[1] ="token";//jsonobj.getString("token");
+                    }
+                    else
+                    {
+                        //result.add("");
+                        //result.add("token");
+                    }
+                } catch (JSONException e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            //res[0] ="";
+                            //res[1] ="";
+                            Toast.makeText(
+                                    getApplicationContext(),
+                                    "Something went wrong :(",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode,Header[] headers, String responseString, Throwable throwable) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(
+                                getApplicationContext(),
+                                "Something went wrong :(",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                });
+
+            }
+        });
+        return result;
+
     }
     private void logIn()
     {
@@ -172,11 +223,23 @@ public class MainActivity extends AppCompatActivity implements
 
 
 
-        String r[]=post("http://192.168.55.245:3000/users/login","status",params);
+        List<String> res=post("http://192.168.55.245:3000/users/login","status",params);
 
-        final  String userid = r[0];
-        final String token = r[1];
-        Log.d(TAG,"user:"+r[0]);
+        final  String userid;
+        final String token;
+        if(!res.isEmpty())
+        {
+            userid = res.get(0);
+            token = res.get(1);
+            Log.d(TAG,"user:"+res.get(0));
+        }
+        else
+        {
+            userid = "";
+            token = "";
+            Log.d(TAG,"user:"+"");
+        }
+
         new android.os.Handler().postDelayed(
                 new Runnable() {
                     public void run() {
@@ -191,7 +254,7 @@ public class MainActivity extends AppCompatActivity implements
                             Toast.makeText(
                                     getApplicationContext(),
                                     "Login failed",
-                                    Toast.LENGTH_LONG
+                                    Toast.LENGTH_SHORT
                             ).show();
                         }
                         
@@ -285,9 +348,21 @@ public class MainActivity extends AppCompatActivity implements
             params.put("photo",personPhotoUrl[0]);
 
 
-            String r[]=post("http://192.168.55.245:3000/users/register","status",params);
-            final  String userid = r[0];
-            final String token = r[1];
+            List<String> res=post("http://192.168.55.245:3000/users/register","status",params);
+            String userid;
+            String token;
+            if(!res.isEmpty())
+            {
+                userid = res.get(0);
+                token = res.get(1);
+                Log.d(TAG,"user:"+res.get(0));
+            }
+            else
+            {
+                userid = "";
+                token = "";
+                Log.d(TAG,"user:"+"");
+            }
             if(userid!=null&&token!=null&&!userid.equals("") && !token.equals(""))
             {
                 logIntent(new  String[]{userid,token,personPhotoUrl[0]});

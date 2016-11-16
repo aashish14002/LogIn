@@ -27,6 +27,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import cz.msebera.android.httpclient.Header;
 
@@ -97,25 +99,75 @@ public class Signup extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private String[] post(String url,final String arr,RequestParams params)
+    private List<String> post(String url,final String arr,RequestParams params)
     {
+        final List<String>result=new ArrayList();//String[] res = new String[2];//={"",""};
         //create HTTP client
         AsyncHttpClient client = new AsyncHttpClient();
-        Jsonhttphandler handler=new Jsonhttphandler();
+        //Jsonhttphandler handler=new Jsonhttphandler();
         Log.d(TAG,params.toString());
-        client.post(url, params,handler );
-        return handler.getRes();
+        client.post(url, params, new JsonHttpResponseHandler(){
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                try {
+                    //JSONArray resp = response.getJSONArray(arr);
+                    //JSONObject jsonobj = resp.getJSONObject(0);
+                    if(response.getString("status")!=null)
+                    {
+                        result.add(response.getString("userid"));
+                        result.add("token");
+                        //res[0] =response.getString("userid");
+                        //res[1] ="token";//jsonobj.getString("token");
+                    }
+                    else
+                    {
+                        //result.add("");
+                        //result.add("token");
+                    }
+                } catch (JSONException e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            //res[0] ="";
+                            //res[1] ="";
+                            Toast.makeText(
+                                    getApplicationContext(),
+                                    "Something went wrong :(",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode,Header[] headers, String responseString, Throwable throwable) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(
+                                getApplicationContext(),
+                                "Something went wrong :(",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                });
+
+            }
+        });
+        return result;
+
     }
     public void signup() {
         Log.d(TAG, "Signup");
 
 
         if (!validate()) {
-            Toast.makeText(getBaseContext(), "SignUp failed", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getBaseContext(), "validate eror", Toast.LENGTH_SHORT).show();
 
-            return;
+            //return;
         }
-
 
         final ProgressDialog progressDialog = new ProgressDialog(this,
                 R.style.AppTheme_Dark_Dialog);
@@ -138,7 +190,7 @@ public class Signup extends AppCompatActivity {
 
         RequestParams params = new RequestParams();
 
-// set our JSON object
+        // set our JSON object
         params.put("username",Username );
         params.put("password", Password);
         params.put("name", Name);
@@ -147,20 +199,26 @@ public class Signup extends AppCompatActivity {
         params.put("gender", Gender);
         params.put("photo",photo);
 
-
-
-
-        String r[]=post("http://192.168.55.245:3000/users/register","status",params);
-        final  String userid = r[0];
-        final String token = r[1];
+        List<String> res=post("http://192.168.55.245:3000/users/register","status",params);
+        final String userid;
+        final String token;
+        if(!res.isEmpty())
+        {
+            userid = res.get(0);
+            token = res.get(1);
+            Log.d(TAG,"user:"+res.get(0));
+        }
+        else
+        {
+            userid = "";
+            token = "";
+            Log.d(TAG,"user:"+"");
+        }
 
         new android.os.Handler().postDelayed(
                 new Runnable() {
                     public void run() {
-                        // On complete call either onSignupSuccess or onSignupFailed
-                        // depending on success
-                        //onSignupSuccess();
-                        // onSignupFailed();
+
                         if(userid!=null&&token!=null&&!userid.equals("") && !token.equals(""))
                         {
                             logIntent(new  String[]{userid,token,photo});
@@ -183,9 +241,7 @@ public class Signup extends AppCompatActivity {
 
     public boolean validate() {
         boolean valid = true;
-
         String Name = name.getText().toString();
-
         String Username= username.getText().toString();
         String Age = age.getText().toString();
         String Password = password.getText().toString();
@@ -201,10 +257,10 @@ public class Signup extends AppCompatActivity {
         }
 
         if (Gender.isEmpty() || !Gender.equalsIgnoreCase("m") || !Gender.equalsIgnoreCase("f")) {
-            name.setError("M or F");
+            gender.setError("M or F");
             valid = false;
         } else {
-            name.setError(null);
+            gender.setError(null);
         }
 
 
@@ -224,14 +280,14 @@ public class Signup extends AppCompatActivity {
            age.setError(null);
         }
 
-        if (Password.isEmpty() || Password.length() < 4 || Password.length() > 10) {
-            password.setError("between 4 and 10 alphanumeric characters");
+        if (Password.isEmpty() || Password.length() < 4 || Password.length() > 12) {
+            password.setError("between 4 and 12 alphanumeric characters");
             valid = false;
         } else {
             password.setError(null);
         }
 
-        if (reEnterPassword.isEmpty() || reEnterPassword.length() < 4 || reEnterPassword.length() > 10 || !(reEnterPassword.equals(Password))) {
+        if (reEnterPassword.isEmpty() || reEnterPassword.length() < 4 || reEnterPassword.length() > 12 || !(reEnterPassword.equals(Password))) {
             repassword.setError("Password Do not match");
             valid = false;
         } else {
