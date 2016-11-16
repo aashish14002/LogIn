@@ -142,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements
         final String[] res=new String[2];
         //create HTTP client
         AsyncHttpClient client = new AsyncHttpClient();
+        Log.d(TAG,params.toString());
         client.post(url, params, new JsonHttpResponseHandler(){
 
             @Override
@@ -149,10 +150,10 @@ public class MainActivity extends AppCompatActivity implements
                 try {
                     JSONArray resp = response.getJSONArray(arr);
                     JSONObject jsonobj = resp.getJSONObject(0);
-                    if(jsonobj.getString("err")==null)
+                    if(jsonobj.getString("status")!=null)
                     {
                         res[0] =jsonobj.getString("userid");
-                        res[1] =jsonobj.getString("token");
+                        res[1] ="token";//jsonobj.getString("token");
                     }
                     else
                     {
@@ -217,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements
 
 
 
-        String r[]=post(":3000/users/login","login",params);
+        String r[]=post("http://192.168.55.245:3000/users/login","status",params);
         final  String userid = r[0];
         final String token = r[1];
         new android.os.Handler().postDelayed(
@@ -319,7 +320,7 @@ public class MainActivity extends AppCompatActivity implements
             params.put("photo",personPhotoUrl[0]);
 
 
-            String r[]=post(":3000/users/register","register",params);
+            String r[]=post("http://192.168.55.245:3000/users/register","status",params);
             final  String userid = r[0];
             final String token = r[1];
             if(!userid.equals("") && !token.equals(""))

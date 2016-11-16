@@ -109,10 +109,10 @@ public class Signup extends AppCompatActivity {
                 try {
                     JSONArray resp = response.getJSONArray(arr);
                     JSONObject jsonobj = resp.getJSONObject(0);
-                    if(jsonobj.getString("err")==null)
+                    if(jsonobj.getString("status")!=null)
                     {
                         res[0] =jsonobj.getString("userid");
-                        res[1] =jsonobj.getString("token");
+                        res[1] ="token";//jsonobj.getString("token");
                     }
                     else
                     {
@@ -198,7 +198,7 @@ public class Signup extends AppCompatActivity {
 
 
 
-        String r[]=post(":3000/users/register","register",params);
+        String r[]=post("http://192.168.55.245:3000/users/register","status",params);
         final  String userid = r[0];
         final String token = r[1];
 
