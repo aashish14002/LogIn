@@ -59,7 +59,6 @@ public class MainActivity extends AppCompatActivity implements
     private static final String TAG = MainActivity.class.getSimpleName();
     static final String T = MainActivity.class.getSimpleName()+".tag";
     private static final int RC_SIGN_IN = 007;
-
     private GoogleApiClient mGoogleApiClient;
     private ProgressDialog mProgressDialog;
 
@@ -139,66 +138,19 @@ public class MainActivity extends AppCompatActivity implements
 
     private String[] post(String url,final String arr,RequestParams params)
     {
-        final String[] res=new String[2];
-        //create HTTP client
+       //create HTTP client
         AsyncHttpClient client = new AsyncHttpClient();
+        Jsonhttphandler handler=new Jsonhttphandler();
         Log.d(TAG,params.toString());
-        client.post(url, params, new JsonHttpResponseHandler(){
-
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-                try {
-                    JSONArray resp = response.getJSONArray(arr);
-                    JSONObject jsonobj = resp.getJSONObject(0);
-                    if(jsonobj.getString("status")!=null)
-                    {
-                        res[0] =jsonobj.getString("userid");
-                        res[1] ="token";//jsonobj.getString("token");
-                    }
-                    else
-                    {
-                        res[0] ="";
-                        res[1] ="";
-                    }
-                } catch (JSONException e) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            res[0] ="";
-                            res[1] ="";
-                            Toast.makeText(
-                                    getApplicationContext(),
-                                    "Something went wrong :(",
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        }
-                    });
-                }
-            }
-
-            @Override
-            public void onFailure(int statusCode,Header[] headers, String responseString, Throwable throwable) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(
-                                getApplicationContext(),
-                                "Something went wrong :(",
-                                Toast.LENGTH_LONG
-                        ).show();
-                    }
-                });
-
-            }
-        });
-        return res;
+        client.post(url, params,handler );
+        return handler.getRes();
     }
     private void logIn()
     {
 
         
         if (!validate()) {
-            Toast.makeText(getBaseContext(), "Login failed", Toast.LENGTH_LONG).show();
+            Toast.makeText(getBaseContext(), "Login failed", Toast.LENGTH_SHORT).show();
             return;
         }
         final ProgressDialog progressDialog = new ProgressDialog(this,
@@ -219,12 +171,16 @@ public class MainActivity extends AppCompatActivity implements
 
 
         String r[]=post("http://192.168.55.245:3000/users/login","status",params);
+
         final  String userid = r[0];
         final String token = r[1];
+        Log.d(TAG,"user:"+r[0]);
         new android.os.Handler().postDelayed(
                 new Runnable() {
                     public void run() {
-                        if(!userid.equals("") && !token.equals(""))
+
+
+                        if(userid!=null && token!=null &&!userid.equals("") && !token.equals(""))
                         {
                             logIntent(new  String[]{userid,token,null});
                         }
@@ -323,7 +279,7 @@ public class MainActivity extends AppCompatActivity implements
             String r[]=post("http://192.168.55.245:3000/users/register","status",params);
             final  String userid = r[0];
             final String token = r[1];
-            if(!userid.equals("") && !token.equals(""))
+            if(userid!=null&&token!=null&&!userid.equals("") && !token.equals(""))
             {
                 logIntent(new  String[]{userid,token,personPhotoUrl[0]});
             }
@@ -450,5 +406,11 @@ public class MainActivity extends AppCompatActivity implements
             llProfileLayout.setVisibility(View.GONE);
         }
     }*/
+
+
+    interface Intet
+    {
+        public abstract int resultGet();
+    }
 }
 

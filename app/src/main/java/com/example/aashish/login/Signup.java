@@ -99,70 +99,22 @@ public class Signup extends AppCompatActivity {
 
     private String[] post(String url,final String arr,RequestParams params)
     {
-        final String[] res=new String[2];
         //create HTTP client
         AsyncHttpClient client = new AsyncHttpClient();
-        client.post(url, params, new JsonHttpResponseHandler(){
-
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-                try {
-                    JSONArray resp = response.getJSONArray(arr);
-                    JSONObject jsonobj = resp.getJSONObject(0);
-                    if(jsonobj.getString("status")!=null)
-                    {
-                        res[0] =jsonobj.getString("userid");
-                        res[1] ="token";//jsonobj.getString("token");
-                    }
-                    else
-                    {
-                        res[0] ="";
-                        res[1] ="";
-                    }
-                } catch (JSONException e) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            res[0] ="";
-                            res[1] ="";
-                            Toast.makeText(
-                                    getApplicationContext(),
-                                    "Something went wrong :(",
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        }
-                    });
-                }
-            }
-
-            @Override
-            public void onFailure(int statusCode,Header[] headers, String responseString, Throwable throwable) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(
-                                getApplicationContext(),
-                                "Something went wrong :(",
-                                Toast.LENGTH_LONG
-                        ).show();
-                    }
-                });
-
-            }
-        });
-        return res;
+        Jsonhttphandler handler=new Jsonhttphandler();
+        Log.d(TAG,params.toString());
+        client.post(url, params,handler );
+        return handler.getRes();
     }
-
     public void signup() {
         Log.d(TAG, "Signup");
 
 
         if (!validate()) {
-            Toast.makeText(getBaseContext(), "Login failed", Toast.LENGTH_LONG).show();
+            Toast.makeText(getBaseContext(), "SignUp failed", Toast.LENGTH_SHORT).show();
 
             return;
         }
-
 
 
         final ProgressDialog progressDialog = new ProgressDialog(this,
@@ -209,7 +161,7 @@ public class Signup extends AppCompatActivity {
                         // depending on success
                         //onSignupSuccess();
                         // onSignupFailed();
-                        if(!userid.equals("") && !token.equals(""))
+                        if(userid!=null&&token!=null&&!userid.equals("") && !token.equals(""))
                         {
                             logIntent(new  String[]{userid,token,photo});
                         }
@@ -259,7 +211,7 @@ public class Signup extends AppCompatActivity {
 
 
         if (Username.isEmpty()) {
-            username.setError("enter a valid username address");
+            username.setError("enter a valid username");
             valid = false;
         } else {
             username.setError(null);
@@ -279,7 +231,7 @@ public class Signup extends AppCompatActivity {
             password.setError(null);
         }
 
-        if (reEnterPassword.isEmpty() || reEnterPassword.length() < 4 || reEnterPassword.length() > 10 || !(reEnterPassword.equals(password))) {
+        if (reEnterPassword.isEmpty() || reEnterPassword.length() < 4 || reEnterPassword.length() > 10 || !(reEnterPassword.equals(Password))) {
             repassword.setError("Password Do not match");
             valid = false;
         } else {
