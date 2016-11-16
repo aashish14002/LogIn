@@ -47,6 +47,8 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import cz.msebera.android.httpclient.Header;
 
@@ -247,15 +249,20 @@ public class MainActivity extends AppCompatActivity implements
             }
 
             String username = acct.getEmail();
-
+            final List<String> p=new ArrayList();
             SimpleTarget target = new SimpleTarget<Bitmap>() {
+
                 @Override
                 public void onResourceReady(Bitmap bitmap, GlideAnimation glideAnimation) {
                     // do something with the bitmap
                     // for demonstration purposes, let's just set it to an ImageView
-                    personPhotoUrl[0]=BitMapToString(bitmap);
+
+                    p.add(BitMapToString(bitmap));
+                    Log.d(TAG,"bitmap  ");
                 }
+
             };
+
             if(!personPhotoUrl[0].equals(""))
                 Glide.with( getApplicationContext())
                     .load(personPhotoUrl[0])
@@ -273,6 +280,8 @@ public class MainActivity extends AppCompatActivity implements
             params.put("age", "");
             params.put("aboutme", "");
             params.put("gender", "");
+            if(!p.isEmpty())
+                personPhotoUrl[0]=p.get(0);
             params.put("photo",personPhotoUrl[0]);
 
 
