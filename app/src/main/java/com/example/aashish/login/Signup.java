@@ -61,10 +61,7 @@ public class Signup extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
-        boolean d0 = new File(getFilesDir().getAbsolutePath(), "t").delete();
-        Log.d(TAG,"file delete t "+d0);
-        boolean d1 = new File(getFilesDir().getAbsolutePath(), "error").delete();
-        Log.d(TAG,"file delete error "+d0);
+
         name=(EditText)findViewById(R.id.input_name);
         username=(EditText)findViewById(R.id.input_username);
         age=(EditText)findViewById(R.id.input_age);

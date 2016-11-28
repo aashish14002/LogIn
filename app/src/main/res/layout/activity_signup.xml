@@ -15,10 +15,11 @@
         android:paddingLeft="24dp"
         android:paddingRight="24dp">
 
-        <ImageView android:src="@mipmap/logo"
+        <ImageView android:src="@mipmap/profile_icon"
             android:id="@+id/input_photo"
-            android:layout_width="wrap_content"
-            android:layout_height="72dp"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:scaleType="fitXY"
             android:layout_marginBottom="24dp"
             android:layout_gravity="center_horizontal" />
 

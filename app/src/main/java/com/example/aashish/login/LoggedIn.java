@@ -26,8 +26,7 @@ public class LoggedIn extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_logged_in);
-        btnSignOut = (Button) findViewById(R.id.btn_sign_out);
-        btnRevokeAccess = (Button) findViewById(R.id.btn_revoke_access);
+
         imgProfilePic = (ImageView) findViewById(R.id.imgProfilePic);
         txtName = (TextView) findViewById(R.id.txtName);
         txtEmail = (TextView) findViewById(R.id.txtEmail);
