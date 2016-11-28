@@ -32,6 +32,10 @@ public class LoggedIn extends AppCompatActivity {
         txtName = (TextView) findViewById(R.id.txtName);
         txtEmail = (TextView) findViewById(R.id.txtEmail);
         String detail[]=getIntent().getStringArrayExtra(MainActivity.T);
+        String detail1[]=getIntent().getStringArrayExtra(Signup.S);
+        if(detail==null)
+            detail=detail1;
+
         if(detail[0]!=null)
             txtName.setText(detail[0]);
         if(detail[1]!=null)
@@ -52,9 +56,9 @@ public class LoggedIn extends AppCompatActivity {
             return null;
         }
     }
-    @Override
+    /*@Override
     public void onBackPressed() {
         // Disable going back to the MainActivity
         moveTaskToBack(true);
-    }
+    }*/
 }

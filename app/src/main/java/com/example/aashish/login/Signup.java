@@ -26,7 +26,16 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,6 +61,10 @@ public class Signup extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
+        boolean d0 = new File(getFilesDir().getAbsolutePath(), "t").delete();
+        Log.d(TAG,"file delete t "+d0);
+        boolean d1 = new File(getFilesDir().getAbsolutePath(), "error").delete();
+        Log.d(TAG,"file delete error "+d0);
         name=(EditText)findViewById(R.id.input_name);
         username=(EditText)findViewById(R.id.input_username);
         age=(EditText)findViewById(R.id.input_age);
@@ -62,6 +75,7 @@ public class Signup extends AppCompatActivity {
         loginlink=(TextView)findViewById(R.id.link_login);
         signupbutton=(Button)findViewById(R.id.btn_signup);
         photo=(ImageView)findViewById(R.id.input_photo);
+
         photo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -92,45 +106,49 @@ public class Signup extends AppCompatActivity {
 
     }
 
-    private void logIntent(String[] d)
-    {
+    private void logIntent(String[] d) {
         Intent intent=new Intent(getApplicationContext(),LoggedIn.class);
         intent.putExtra(S,d);
         startActivity(intent);
     }
 
-    private List<String> post(String url,final String arr,RequestParams params)
-    {
-        final List<String>result=new ArrayList();//String[] res = new String[2];//={"",""};
+    private void post(String url,final String arr,RequestParams params) {
+        String[] r={"",""};
+        final ProgressDialog progressDialog = new ProgressDialog(this,
+                R.style.AppTheme_Dark_Dialog);
+        progressDialog.setIndeterminate(true);
+        progressDialog.setMessage("Creating Account...");
+        progressDialog.show();
         //create HTTP client
         AsyncHttpClient client = new AsyncHttpClient();
-        //Jsonhttphandler handler=new Jsonhttphandler();
+        Jsonhttphandler handler=new Jsonhttphandler();
         Log.d(TAG,params.toString());
         client.post(url, params, new JsonHttpResponseHandler(){
+
+
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 try {
-                    //JSONArray resp = response.getJSONArray(arr);
-                    //JSONObject jsonobj = resp.getJSONObject(0);
+                    Log.d(TAG,"entered on success");
                     if(response.getString("status")!=null)
                     {
-                        result.add(response.getString("userid"));
-                        result.add("token");
-                        //res[0] =response.getString("userid");
-                        //res[1] ="token";//jsonobj.getString("token");
+                        Log.d(TAG,"success");
+                        String u=response.getString("userid");
+                        String t=response.getString("token");
+
+                        logIntent(new  String[]{u,t,null});
                     }
                     else
                     {
-                        //result.add("");
-                        //result.add("token");
+                        Log.d(TAG,"not success");
                     }
                 } catch (JSONException e) {
+                    Log.d(TAG,"jsonexception");
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            //res[0] ="";
-                            //res[1] ="";
+
                             Toast.makeText(
                                     getApplicationContext(),
                                     "Something went wrong :(",
@@ -139,41 +157,77 @@ public class Signup extends AppCompatActivity {
                         }
                     });
                 }
-            }
-
-            @Override
-            public void onFailure(int statusCode,Header[] headers, String responseString, Throwable throwable) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(
-                                getApplicationContext(),
-                                "Something went wrong :(",
-                                Toast.LENGTH_LONG
-                        ).show();
+
+                        if (progressDialog.isShowing())
+                            progressDialog.hide();
                     }
                 });
 
             }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable throwable, final JSONObject responseString) {
+                Log.d(TAG,"failure");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        boolean error=true;
+
+                        if(responseString!=null)
+                        {
+                            try {
+                                JSONObject e=responseString.getJSONObject("err");
+                                if(e!=null)
+                                {
+                                    if(e.getString("name")!=null && e.getString("name").equals("UserExistsError"))
+                                    {
+                                        error=false;
+                                        Log.d(TAG,"failure : username exixts");
+                                        Toast.makeText(
+                                                getApplicationContext(),
+                                                "Username already exixts!!",
+                                                Toast.LENGTH_SHORT
+                                        ).show();
+                                        username.setText("");
+                                    }
+                                }
+                            }catch (JSONException e1) {
+                                e1.printStackTrace();
+                            }
+
+                        }
+                        if(error){
+                            Log.d(TAG,"failure "+error);
+                            Toast.makeText(
+                                    getApplicationContext(),
+                                    "Something went wrong +error:(",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+                        if (progressDialog.isShowing())
+                            progressDialog.hide();
+                    }
+                });
+            }
         });
-        return result;
+
 
     }
+
     public void signup() {
         Log.d(TAG, "Signup");
-
 
         if (!validate()) {
             Toast.makeText(getBaseContext(), "validate eror", Toast.LENGTH_SHORT).show();
 
-            //return;
+            return;
         }
 
-        final ProgressDialog progressDialog = new ProgressDialog(this,
-                R.style.AppTheme_Dark_Dialog);
-        progressDialog.setIndeterminate(true);
-        progressDialog.setMessage("Creating Account...");
-        progressDialog.show();
+
 
         final String Name = name.getText().toString();
         final String Username = username.getText().toString();
@@ -198,46 +252,13 @@ public class Signup extends AppCompatActivity {
         params.put("aboutme", About);
         params.put("gender", Gender);
         params.put("photo",photo);
+        params.put("isgmail","false");
 
-        List<String> res=post("http://192.168.55.245:3000/users/register","status",params);
-        final String userid;
-        final String token;
-        if(!res.isEmpty())
-        {
-            userid = res.get(0);
-            token = res.get(1);
-            Log.d(TAG,"user:"+res.get(0));
-        }
-        else
-        {
-            userid = "";
-            token = "";
-            Log.d(TAG,"user:"+"");
-        }
+        post("http://192.168.55.245:3000/users/register","register",params);
 
-        new android.os.Handler().postDelayed(
-                new Runnable() {
-                    public void run() {
 
-                        if(userid!=null&&token!=null&&!userid.equals("") && !token.equals(""))
-                        {
-                            logIntent(new  String[]{userid,token,photo});
-                        }
-                        else
-                        {
-                            Toast.makeText(
-                                    getApplicationContext(),
-                                    "SignUp failed",
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        }
 
-                        progressDialog.dismiss();
-                    }
-                }, 3000);
     }
-
-
 
     public boolean validate() {
         boolean valid = true;
@@ -251,14 +272,16 @@ public class Signup extends AppCompatActivity {
 
         if (Name.isEmpty() || Name.length() < 3) {
             name.setError("at least 3 characters");
+            Log.d(TAG,"at least 3 characters");
             valid = false;
         } else {
             name.setError(null);
         }
 
-        if (Gender.isEmpty() || !Gender.equalsIgnoreCase("m") || !Gender.equalsIgnoreCase("f")) {
+        if (Gender.isEmpty() || !(Gender.equalsIgnoreCase("m") || Gender.equalsIgnoreCase("f"))) {
             gender.setError("M or F");
             valid = false;
+            Log.d(TAG,"gender");
         } else {
             gender.setError(null);
         }
@@ -269,6 +292,7 @@ public class Signup extends AppCompatActivity {
         if (Username.isEmpty()) {
             username.setError("enter a valid username");
             valid = false;
+            Log.d(TAG,"username");
         } else {
             username.setError(null);
         }
@@ -276,20 +300,23 @@ public class Signup extends AppCompatActivity {
         if (Age.isEmpty() || Age.length()!=2) {
             age.setError("Enter Valid Age");
             valid = false;
+            Log.d(TAG,"age");
         } else {
            age.setError(null);
         }
 
-        if (Password.isEmpty() || Password.length() < 4 || Password.length() > 12) {
+        if (Password.isEmpty() || Password.length() < 4 ) {
             password.setError("between 4 and 12 alphanumeric characters");
             valid = false;
+            Log.d(TAG,"password");
         } else {
             password.setError(null);
         }
 
-        if (reEnterPassword.isEmpty() || reEnterPassword.length() < 4 || reEnterPassword.length() > 12 || !(reEnterPassword.equals(Password))) {
+        if (reEnterPassword.isEmpty() || reEnterPassword.length() < 4  || !(reEnterPassword.equals(Password))) {
             repassword.setError("Password Do not match");
             valid = false;
+            Log.d(TAG,"repassword");
         } else {
             repassword.setError(null);
         }
@@ -315,11 +342,12 @@ public class Signup extends AppCompatActivity {
 
     public String BitMapToString(Bitmap bitmap){
         ByteArrayOutputStream baos=new  ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG,100, baos);
+        bitmap.compress(Bitmap.CompressFormat.JPEG,20, baos);
         byte [] arr=baos.toByteArray();
         String result= Base64.encodeToString(arr, Base64.DEFAULT);
         return result;
     }
+
     public Bitmap StringToBitMap(String image){
         try{
             byte [] encodeByte=Base64.decode(image,Base64.DEFAULT);
@@ -330,5 +358,6 @@ public class Signup extends AppCompatActivity {
             return null;
         }
     }
+
 }
 

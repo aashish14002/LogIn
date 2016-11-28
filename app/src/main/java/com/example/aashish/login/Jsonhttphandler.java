@@ -31,6 +31,7 @@ public class Jsonhttphandler extends JsonHttpResponseHandler {
                 res[0] =response.getString("userid");
                 //Log.d(TAG,res[0]);
                 res[1] ="token";//jsonobj.getString("token");
+
             }
 
         } catch (JSONException e) {
@@ -38,8 +39,6 @@ public class Jsonhttphandler extends JsonHttpResponseHandler {
         }
 
         }
-
-
 
     @Override
     public void onFailure(int statusCode,Header[] headers, Throwable throwable,JSONObject response) {
